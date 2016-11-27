@@ -134,18 +134,10 @@ class App extends React.Component {
 
   componentDidMount() {
     ipcRenderer.on('processList_update', (event, result) => this.updateProcessList(result));
-    this.updateProcessList();
   }
 
   updateProcessList(processList) {
-    var test = [];
-    test.push({
-      "pid": 1,
-      "name": "Test",
-      "numThreads": 5,
-      "workingSetSize": 15
-    });
-    this.setState({processes: test});
+    this.setState({processes: processList});
   }
 
   render() {

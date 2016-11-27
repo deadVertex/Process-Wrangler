@@ -1,9 +1,68 @@
 const {app, BrowserWindow} = require('electron')
+const ffi = require('ffi');
+const ref = require('ref');
+const StructType = require('ref-struct');
+const ArrayType = require('ref-array');
+
+// Defined in libprocesswrangler header file
+var PW_PROCESS_NAME_LENGTH = 260;
+
+var ProcessNameType = ArrayType(ref.types.char, PW_PROCESS_NAME_LENGTH);
+var ProcessType = StructType({
+  'id' : ref.types.uint,
+  'numThreads' : ref.types.uint,
+  'workingSetSize' : ref.types.ulonglong,
+  'name' : ProcessNameType
+});
+
+var ProcessListType = ArrayType(ProcessType);
+
+var libprocesswrangler = ffi.Library('libprocesswrangler.dll', {
+  'PW_UpdateProcessList': [ 'int', [] ],
+  'PW_ClearProcessList': [ 'void', [] ],
+  'PW_GetProcessList': [ 'int', [ ref.refType(ProcessListType), ref.types.uint ] ],
+});
+
+function updateProcessList() {
+
+  var count = libprocesswrangler.PW_UpdateProcessList();
+
+  if (count > 0) {
+    var processList = new ProcessListType(count);
+
+    libprocesswrangler.PW_GetProcessList(processList[0].ref(), processList.length);
+    var processListMessage = new Array();
+    for (var i = 0; i < count; ++i) {
+      var name = "";
+      for (var j = 0; j < processList[i].name.length; ++j) {
+        if (processList[i].name[j] == 0) {
+          break;
+        }
+        name = name + String.fromCharCode(processList[i].name[j]);
+      }
+      processListMessage[i] = {
+        'pid' : processList[i].id,
+        'name' : name,
+        'numThreads' : processList[i].numThreads,
+        'workingSetSize' : processList[i].workingSetSize
+      };
+    }
+    mainWindow.webContents.send('processList_update', processListMessage );
+
+  } else if (numProcesses < 0) {
+    console.log("PW_UpdateProcessListFailed");
+  }
+}
 
 function createWindow () {
   mainWindow = new BrowserWindow({width: 800, height: 600})
 
   mainWindow.loadURL(`file://${__dirname}/index.html`)
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    updateProcessList();
+    setInterval(updateProcessList, 1000);
+  })
 
   mainWindow.on('closed', function () {
     mainWindow = null

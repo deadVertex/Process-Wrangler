@@ -21,13 +21,18 @@
     "electron": "*",
     "react": "*",
     "react-dom": "*",
-    "react-tap-event-plugin": "*"
+    "react-tap-event-plugin": "*",
+    "ffi": "*",
+    "ref": "*",
+    "ref-array": "*",
+    "ref-struct": "*"
   },
   "devDependencies": {
     "babel-core": "^6.18.2",
     "babel-loader": "^6.2.8",
     "babel-plugin-transform-object-rest-spread": "^6.19.0",
     "material-ui": "^0.16.4",
+    "electron-rebuild": "^1.2.1",
     "webpack": "*"
   }
 }
