@@ -15,7 +15,7 @@ class ProcessTableEntry extends React.Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
-    const {pid, name, threadCount, workingSetSize, selected, ...otherProps} = this.props;
+    const {pid, name, threadCount, workingSetSize, selected, rowNumber, ...otherProps} = this.props;
 
     if (pid !== nextProps.pid) {
       return true;
@@ -34,13 +34,17 @@ class ProcessTableEntry extends React.Component {
       return true;
     }
 
+    if (rowNumber !== nextProps.rowNumber) {
+      return true;
+    }
+
     return false;
   }
 
   render() {
     const {pid, name, threadCount, workingSetSize, selected, ...otherProps} = this.props;
     return (
-        <TableRow {...otherProps} ref={(tableRow) => {this.tableRow = tableRow;}}>
+        <TableRow {...otherProps} >
           {otherProps.children[0]}
           <TableRowColumn>{pid}</TableRowColumn>
           <TableRowColumn>{name}</TableRowColumn>
@@ -55,6 +59,7 @@ class ProcessTable extends React.Component {
   constructor(props) {
     super(props);
 
+    this.processes = [];
     this.state = {
       selectedProcesses : []
     }
@@ -67,6 +72,16 @@ class ProcessTable extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
+    var sortedProcesses = nextProps.processes.sort(function(a, b) {
+      if (a.workingSetSize < b.workingSetSize) {
+        return -1;
+      } else if (a.workingSetSize > b.workingSetSize) {
+        return 1;
+      }
+      return 0;
+    });
+
+    this.processes = sortedProcesses;
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -81,7 +96,7 @@ class ProcessTable extends React.Component {
 
   onRowSelection(selectedRows) {
     if (selectedRows === 'all') {
-      var allProcesses = this.props.processes.map(function(entry, index) {
+      var allProcesses = this.processes.map(function(entry, index) {
         return entry.pid;
       });
       this.setState({selectedProcesses: allProcesses});
@@ -90,20 +105,20 @@ class ProcessTable extends React.Component {
     } else {
       var selectedProcesses = [];
       selectedRows.forEach(selectedRow => {
-        selectedProcesses.push(this.props.processes[selectedRow].pid);
+        console.log(selectedRow);
+        selectedProcesses.push(this.processes[selectedRow].pid);
       });
       this.setState({selectedProcesses : selectedProcesses});
     }
   }
 
   onEndProcesses() {
-    electron.ipcRenderer.send('killProcesses', this.state.selectedProcesses);
   }
 
   render() {
-    var rows = this.props.processes.map(function(entry, index) {
+    var rows = this.processes.map(function(entry, index) {
       return (
-        <ProcessTableEntry key={entry.pid} pid={entry.pid} name={entry.name} threadCount={entry.numThreads} workingSetSize={entry.workingSetSize} selected={this.isProcessSelected(entry.pid)} />
+        <ProcessTableEntry key={entry.pid} pid={entry.pid} name={entry.name} threadCount={entry.numThreads} workingSetSize={entry.workingSetSize} rowNumber={index} selected={this.isProcessSelected(entry.pid)} />
       );
     }, this);
 
