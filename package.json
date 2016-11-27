@@ -1,0 +1,20 @@
+{
+  "name": "Process-Wrangler",
+  "version": "0.0.1",
+  "description": "A cross platform task manager built on top of electron",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": "https://github.com/deadVertex/Process-Wrangler",
+  "keywords": [
+    "Electron",
+    "task",
+    "process"
+  ],
+  "author": "David Goosen",
+  "license": "MIT",
+  "dependencies": {
+    "electron": "*"
+  }
+}
