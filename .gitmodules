@@ -1,0 +1,3 @@
+[submodule "thirdparty/libprocesswrangler"]
+	path = thirdparty/libprocesswrangler
+	url = https://github.com/deadVertex/libprocesswrangler.git
