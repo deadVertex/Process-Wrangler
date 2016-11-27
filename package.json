@@ -4,7 +4,8 @@
   "description": "A cross platform task manager built on top of electron",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "webpack --config webpack.config.js --progress --profile --colors"
   },
   "repository": "https://github.com/deadVertex/Process-Wrangler",
   "keywords": [
@@ -15,6 +16,18 @@
   "author": "David Goosen",
   "license": "MIT",
   "dependencies": {
-    "electron": "*"
+    "babel-preset-es2015": "*",
+    "babel-preset-react": "*",
+    "electron": "*",
+    "react": "*",
+    "react-dom": "*",
+    "react-tap-event-plugin": "*"
+  },
+  "devDependencies": {
+    "babel-core": "^6.18.2",
+    "babel-loader": "^6.2.8",
+    "babel-plugin-transform-object-rest-spread": "^6.19.0",
+    "material-ui": "^0.16.4",
+    "webpack": "*"
   }
 }

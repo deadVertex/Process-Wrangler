@@ -39,3 +39,6 @@ jspm_packages
 # Binary files
 *.dll
 *.so
+
+# Webpack output
+build/**
