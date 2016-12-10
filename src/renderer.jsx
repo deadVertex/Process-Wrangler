@@ -61,7 +61,8 @@ class ProcessTable extends React.Component {
 
     this.processes = [];
     this.state = {
-      selectedProcesses : []
+      selectedProcesses : [],
+      sortColumn : ""
     }
   }
 
@@ -72,14 +73,19 @@ class ProcessTable extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    var sortedProcesses = nextProps.processes.sort(function(a, b) {
-      if (a.workingSetSize < b.workingSetSize) {
-        return -1;
-      } else if (a.workingSetSize > b.workingSetSize) {
-        return 1;
-      }
-      return 0;
-    });
+    var sortedProcesses = [];
+    if (this.state.sortColumn !== "") {
+      sortedProcesses = nextProps.processes.sort(function(a, b) {
+        if (a[this.state.sortColumn] < b[this.state.sortColumn]) {
+          return -1;
+        } else if (a[this.state.sortColumn] > b[this.state.sortColumn]) {
+          return 1;
+        }
+        return 0;
+      }.bind(this));
+    } else {
+      sortedProcesses = nextProps.processes;
+    }
 
     this.processes = sortedProcesses;
   }
@@ -105,7 +111,6 @@ class ProcessTable extends React.Component {
     } else {
       var selectedProcesses = [];
       selectedRows.forEach(selectedRow => {
-        console.log(selectedRow);
         selectedProcesses.push(this.processes[selectedRow].pid);
       });
       this.setState({selectedProcesses : selectedProcesses});
@@ -113,6 +118,18 @@ class ProcessTable extends React.Component {
   }
 
   onEndProcesses() {
+  }
+
+  onSortColumn(event, rowNumber, columnNumber) {
+    if (columnNumber == 1) {
+      this.setState({sortColumn : "pid"});
+    } else if (columnNumber == 3) {
+      this.setState({sortColumn : "numThreads"});
+    } else if (columnNumber == 4) {
+      this.setState({sortColumn : "workingSetSize"});
+    } else {
+      this.setState({sortColumn : ""});
+    }
   }
 
   render() {
@@ -126,7 +143,7 @@ class ProcessTable extends React.Component {
     <div>
       <Table multiSelectable={true} height={this.props.height} onRowSelection={this.onRowSelection.bind(this)} ref={(table) => {this.table = table;}}>
         <TableHeader displaySelectAll={false}>
-          <TableRow>
+          <TableRow onCellClick={this.onSortColumn.bind(this)}>
             <TableHeaderColumn>PID</TableHeaderColumn>
             <TableHeaderColumn>Name</TableHeaderColumn>
             <TableHeaderColumn>Threads</TableHeaderColumn>
