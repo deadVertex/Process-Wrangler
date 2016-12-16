@@ -118,6 +118,7 @@ class ProcessTable extends React.Component {
   }
 
   onEndProcesses() {
+    ipcRenderer.send('killProcesses', this.state.selectedProcesses);
   }
 
   onSortColumn(event, rowNumber, columnNumber) {

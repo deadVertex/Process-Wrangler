@@ -1,4 +1,4 @@
-const {app, BrowserWindow} = require('electron')
+const {app, BrowserWindow, ipcMain} = require('electron')
 const ffi = require('ffi');
 const ref = require('ref');
 const StructType = require('ref-struct');
@@ -6,6 +6,7 @@ const ArrayType = require('ref-array');
 
 // Defined in libprocesswrangler header file
 var PW_PROCESS_NAME_LENGTH = 260;
+var PW_ERROR_MESSAGE_LENGTH = 320;
 
 var ProcessNameType = ArrayType(ref.types.char, PW_PROCESS_NAME_LENGTH);
 var ProcessType = StructType({
@@ -15,14 +16,39 @@ var ProcessType = StructType({
   'name' : ProcessNameType
 });
 
+var ErrorMessageType = ArrayType(ref.types.char, PW_ERROR_MESSAGE_LENGTH);
+var ErrorType = StructType({
+  'code' : ref.types.uint32,
+  'line' : ref.types.uint32,
+  'file' : ref.types.CString,
+  'function' : ref.types.CString,
+  'message' : ErrorMessageType
+});
+
 var ProcessListType = ArrayType(ProcessType);
+var ProcessIdListType = ArrayType(ref.types.uint32);
 
 var libprocesswrangler = ffi.Library('libprocesswrangler.dll', {
   'PW_UpdateProcessList': [ 'int', [] ],
   'PW_ClearProcessList': [ 'void', [] ],
-  'PW_GetProcessList': [ 'int', [ ref.refType(ProcessListType), ref.types.uint ] ],
+  'PW_GetProcessList': [ 'int', [ ProcessListType, ref.types.uint ] ],
+  'PW_KillProcesses': [ 'int', [ ProcessIdListType, ref.types.uint ] ],
+  'PW_GetErrorCount': [ ref.types.uint, [] ],
+  'PW_ClearErrors' : [ 'void', [] ],
+  'PW_GetError' : [ 'int', [ ref.refType(ErrorType) ] ]
 });
 
+function convertCString(input) {
+  var result = "";
+  for (var i = 0; i < input.length; ++i) {
+    if (input[i] == 0) {
+      break;
+    }
+    result = result + String.fromCharCode(input[i]);
+  }
+
+  return result;
+}
 function updateProcessList() {
 
   var count = libprocesswrangler.PW_UpdateProcessList();
@@ -30,19 +56,12 @@ function updateProcessList() {
   if (count > 0) {
     var processList = new ProcessListType(count);
 
-    libprocesswrangler.PW_GetProcessList(processList[0].ref(), processList.length);
+    libprocesswrangler.PW_GetProcessList(processList, processList.length);
     var processListMessage = new Array();
     for (var i = 0; i < count; ++i) {
-      var name = "";
-      for (var j = 0; j < processList[i].name.length; ++j) {
-        if (processList[i].name[j] == 0) {
-          break;
-        }
-        name = name + String.fromCharCode(processList[i].name[j]);
-      }
       processListMessage[i] = {
         'pid' : processList[i].id,
-        'name' : name,
+        'name' : convertCString(processList[i].name),
         'numThreads' : processList[i].numThreads,
         'workingSetSize' : processList[i].workingSetSize
       };
@@ -51,6 +70,34 @@ function updateProcessList() {
 
   } else if (numProcesses < 0) {
     console.log("PW_UpdateProcessListFailed");
+  }
+}
+
+function killProcesses(event, pids) {
+  if (pids.length > 0) {
+    var pidList = new ProcessIdListType(pids.length);
+    for (var i = 0; i < pids.length; ++i) {
+      pidList[i] = pids[i];
+    }
+
+    console.log(pidList[i]);
+    console.log("Killing processes: " + pids);
+    console.log("Before: " + libprocesswrangler.PW_GetErrorCount());
+    libprocesswrangler.PW_ClearErrors();
+    var result = libprocesswrangler.PW_KillProcesses(pidList, pidList.length);
+    if (result < pidList.length) {
+      var error = new ErrorType();
+      if (libprocesswrangler.PW_GetError(error.ref()) == 0) {
+        console.log("Error:");
+        console.log("\tCode: " + error.code);
+        console.log("\tFile: " + error.file);
+        console.log("\tFunction: " + error.function);
+        console.log("\tLine: " + error.line);
+        console.log("\tMessage: " + convertCString(error.message));
+      }
+    }
+    console.log("Result: " + result + " length: " + pidList.length);
+    console.log("After: " + libprocesswrangler.PW_GetErrorCount());
   }
 }
 
@@ -66,7 +113,9 @@ function createWindow () {
 
   mainWindow.on('closed', function () {
     mainWindow = null
-  })
+  });
+
+  ipcMain.on('killProcesses', killProcesses);
 }
 
 // This method will be called when Electron has finished
