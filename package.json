@@ -19,10 +19,11 @@
     "babel-preset-es2015": "*",
     "babel-preset-react": "*",
     "electron": "*",
+    "ffi": "*",
+    "fuzzysearch": "^1.0.3",
     "react": "*",
     "react-dom": "*",
     "react-tap-event-plugin": "*",
-    "ffi": "*",
     "ref": "*",
     "ref-array": "*",
     "ref-struct": "*"

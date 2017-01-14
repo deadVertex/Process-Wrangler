@@ -1,11 +1,13 @@
 import {ipcRenderer} from 'electron'
 import React from 'react'
 import ReactDOM from 'react-dom'
+import fuzzysearch from 'fuzzysearch'
 
 import injectTapEventPlugin from 'react-tap-event-plugin'
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider'
 import RaisedButton from 'material-ui/RaisedButton'
 import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn} from 'material-ui/Table';
+import TextField from 'material-ui/TextField'
 
 injectTapEventPlugin();
 
@@ -62,7 +64,8 @@ class ProcessTable extends React.Component {
     this.processes = [];
     this.state = {
       selectedProcesses : [],
-      sortColumn : ""
+      sortColumn : "",
+      filter : ""
     }
   }
 
@@ -73,9 +76,17 @@ class ProcessTable extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
+    var filteredProcesses = [];
+    if (this.state.filter !== "") {
+      filteredProcesses = nextProps.processes.filter(function(process) {
+        return fuzzysearch(this.state.filter, process.name);
+      }.bind(this));
+    } else {
+      filteredProcesses = nextProps.processes;
+    }
     var sortedProcesses = [];
     if (this.state.sortColumn !== "") {
-      sortedProcesses = nextProps.processes.sort(function(a, b) {
+      sortedProcesses = filteredProcesses.sort(function(a, b) {
         if (a[this.state.sortColumn] < b[this.state.sortColumn]) {
           return -1;
         } else if (a[this.state.sortColumn] > b[this.state.sortColumn]) {
@@ -84,7 +95,7 @@ class ProcessTable extends React.Component {
         return 0;
       }.bind(this));
     } else {
-      sortedProcesses = nextProps.processes;
+      sortedProcesses = filteredProcesses;
     }
 
     this.processes = sortedProcesses;
@@ -133,6 +144,10 @@ class ProcessTable extends React.Component {
     }
   }
 
+  onUpdateProcessFilter(event, filterText) {
+    this.setState({filter : filterText});
+  }
+
   render() {
     var rows = this.processes.map(function(entry, index) {
       return (
@@ -142,6 +157,7 @@ class ProcessTable extends React.Component {
 
     return (
     <div>
+      <TextField hintText="Quick flter" onChange={this.onUpdateProcessFilter.bind(this)} />
       <Table multiSelectable={true} height={this.props.height} onRowSelection={this.onRowSelection.bind(this)} ref={(table) => {this.table = table;}}>
         <TableHeader displaySelectAll={false}>
           <TableRow onCellClick={this.onSortColumn.bind(this)}>
